@@ -252,17 +252,50 @@ async function loadGuestbook(){
   return `<article class="guestbook-item"><strong>${safeText(item.name)}</strong><small>${safeText(date)}</small>${item.message?`<p>${safeText(item.message)}</p>`:""}${media}</article>`;
  }).join("");
 }
-document.getElementById("wishForm").addEventListener("submit",async e=>{
- e.preventDefault();
- if(!sb){showSetupNotice();return;}
- const name=document.getElementById("wishName").value.trim();
- const message=document.getElementById("wishMessage").value.trim();
- if(!name||!message)return;
- const button=e.currentTarget.querySelector('button[type="submit"]');button.disabled=true;status(wishStatus,"Sending your wishes…");
- const {error}=await sb.from("wedding_guestbook").insert({name,message,entry_type:"comment",approved:false});
- button.disabled=false;
- if(error){status(wishStatus,"Could not send your message. Please try again.");return;}
- e.currentTarget.reset();status(wishStatus,"Thank you! Your message has been submitted for approval.");
+document.getElementById("wishForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  if (!sb) {
+    status(wishStatus, "Guestbook is not configured. Please try again later.");
+    return;
+  }
+
+  const form = e.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const name = document.getElementById("wishName").value.trim();
+  const message = document.getElementById("wishMessage").value.trim();
+
+  if (!name || !message) {
+    status(wishStatus, "Please enter your name and message.");
+    return;
+  }
+
+  button.disabled = true;
+  status(wishStatus, "Sending your wishes...");
+
+  try {
+    const { error } = await sb
+      .from("wedding_guestbook")
+      .insert({
+        name,
+        message,
+        entry_type: "comment",
+        approved: false
+      });
+
+    if (error) throw error;
+
+    form.reset();
+    status(
+      wishStatus,
+      "Thank you! Your wishes have been received and will appear after approval."
+    );
+  } catch (error) {
+    console.error("Wedding guestbook submission failed:", error);
+    status(wishStatus, "Could not send your message. Please try again.");
+  } finally {
+    button.disabled = false;
+  }
 });
 let recorder=null,stream=null,chunks=[],recordedBlob=null,recordingType="audio";
 const startBtn=document.getElementById("startRecording"),stopBtn=document.getElementById("stopRecording"),sendBtn=document.getElementById("sendGreeting"),audioPreview=document.getElementById("voicePreview"),videoPreview=document.getElementById("videoPreview"),cameraPreview=document.getElementById("cameraPreview"),modeSelect=document.getElementById("recordingMode");
