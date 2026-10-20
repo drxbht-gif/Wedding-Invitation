@@ -692,13 +692,15 @@ showSetupNotice();loadGuestbook();
    if(grid){grid.replaceChildren();cfg.events.forEach(ev=>{if(!ev)return;const article=document.createElement('article');article.className='event reveal';if(ev.title==='Wedding')article.classList.add('hl');const date=document.createElement('div');date.className='date';date.textContent=ev.date||'';const h=document.createElement('h3');h.textContent=ev.title||'Celebration';const time=document.createElement('div');time.className='time';time.textContent=ev.time||'';const desc=document.createElement('p');desc.textContent=ev.description||'';const venue=document.createElement('span');venue.className='tag';venue.textContent=ev.venue||'';article.append(date,h,time,desc,venue);grid.append(article);if(window.IntersectionObserver)observer.observe(article);});}
   }
   const music=cfg.music||{};
-  if(typeof music.url==='string'&&music.url.trim()){
-   const musicUrl=playableMediaUrl(music.url);
-   let audio=document.getElementById('siteBackgroundMusic');if(!audio){audio=document.createElement('audio');audio.id='siteBackgroundMusic';audio.loop=true;audio.preload='none';document.body.append(audio);}
-   audio.src=musicUrl;audio.volume=Math.min(1,Math.max(0,Number(music.volume??.35)));
-   let control=document.getElementById('musicToggle');if(!control){control=document.createElement('button');control.id='musicToggle';control.type='button';control.textContent='♫ Play music';control.setAttribute('aria-label','Play or pause wedding music');control.style.cssText='position:fixed;right:16px;bottom:16px;z-index:999;background:var(--wine);color:#fff8ec;border:1px solid var(--gold);border-radius:999px;padding:12px 16px;box-shadow:0 6px 24px #0002;cursor:pointer';document.body.append(control);}
-   control.hidden=false;control.onclick=async()=>{if(audio.paused){try{await audio.play();control.textContent='♫ Pause music';}catch(e){console.warn('Background music could not play:',e);control.textContent='♫ Music unavailable — check URL';}}else{audio.pause();control.textContent='♫ Play music';}};audio.onerror=()=>{control.textContent='♫ Music unavailable — check URL';};
-   if(music.autoplay)control.textContent='♫ Tap to play music';
+  const songs=Array.isArray(music.songs)?music.songs.filter(x=>x&&typeof x.url==='string'&&x.url.trim()):[];
+  if(!songs.length&&typeof music.url==='string'&&music.url.trim())songs.push({title:'Wedding music',url:music.url});
+  if(songs.length){
+   let audio=document.getElementById('siteBackgroundMusic');if(!audio){audio=document.createElement('audio');audio.id='siteBackgroundMusic';audio.preload='none';document.body.append(audio);}
+   audio.volume=Math.min(1,Math.max(0,Number(music.volume??.35)));
+   let control=document.getElementById('musicToggle');if(!control){control=document.createElement('button');control.id='musicToggle';control.type='button';control.setAttribute('aria-label','Play the next wedding song');control.style.cssText='position:fixed;right:16px;bottom:16px;z-index:999;background:var(--wine);color:#fff8ec;border:1px solid var(--gold);border-radius:999px;padding:12px 16px;box-shadow:0 6px 24px #0002;cursor:pointer';document.body.append(control);}
+   let songIndex=-1;const label=()=>`♫ ${songIndex<0?'Tap to play music':`Next song · ${songs[songIndex].title||`Song ${songIndex+1}`}`}`;control.textContent='♫ Tap to play music';control.hidden=false;
+   control.onclick=async()=>{songIndex=(songIndex+1)%songs.length;audio.pause();audio.src=playableMediaUrl(songs[songIndex].url);audio.currentTime=0;audio.volume=Math.min(1,Math.max(0,Number(music.volume??.35)));control.textContent=`♫ Playing: ${songs[songIndex].title||`Song ${songIndex+1}`} · Tap for next`;try{await audio.play();}catch(e){console.warn('Wedding music could not play:',e);control.textContent='♫ Tap to retry / next song';}};
+   audio.onerror=()=>{control.textContent='♫ Song unavailable · Tap for next';};
   }
  }catch(e){console.warn('Wedding site settings could not be loaded; original content remains available.',e);}
 })();
